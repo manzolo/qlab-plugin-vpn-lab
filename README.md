@@ -1,16 +1,20 @@
-# vpn-lab
+# vpn-lab — VPN Configuration Lab
 
-A QEMU/KVM lab that boots two virtual machines for practicing VPN configuration with both WireGuard and OpenVPN.
+[![QLab Plugin](https://img.shields.io/badge/QLab-Plugin-blue)](https://github.com/manzolo/qlab)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/Platform-Linux-lightgrey)](https://github.com/manzolo/qlab)
+
+A [QLab](https://github.com/manzolo/qlab) plugin that boots two virtual machines for practicing VPN configuration with both WireGuard and OpenVPN.
 
 ## Architecture
 
 ```
 ┌─────────────────┐          ┌─────────────────┐
-│  vpn-lab-server │          │  vpn-lab-client  │
-│  SSH: 2235      │◄────────►│  SSH: 2236       │
-│  WG:  51820/udp │          │                  │
-│  VPN: 1194/udp  │          │  WG/OpenVPN      │
-│                 │          │  client tools    │
+│  vpn-lab-server │          │  vpn-lab-client │
+│  SSH: 2235      │◄────────►│  SSH: 2236      │
+│  WG:  51820/udp │          │                 │
+│  VPN: 1194/udp  │          │  WG/OpenVPN     │
+│                 │          │  client tools   │
 └─────────────────┘          └─────────────────┘
 ```
 
