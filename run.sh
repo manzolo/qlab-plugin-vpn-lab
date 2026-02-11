@@ -106,6 +106,7 @@ packages:
   - iptables
   - net-tools
   - iputils-ping
+  - tcpdump
 write_files:
   - path: /etc/profile.d/cloud-init-status.sh
     permissions: '0755'
@@ -131,7 +132,7 @@ write_files:
 
         \033[1;33mRole:\033[0m  VPN Server VM
 
-        \033[1;33mServices available:\033[0m
+        \033[1;33mInstalled tools:\033[0m
           \033[0;32mWireGuard\033[0m      (port 51820/udp)
           \033[0;32mOpenVPN\033[0m        (port 1194/udp)
 
@@ -141,8 +142,8 @@ write_files:
           \033[0;32msudo wg genkey | tee privatekey | wg pubkey > publickey\033[0m
 
         \033[1;33mOpenVPN Commands:\033[0m
-          \033[0;32msudo systemctl status openvpn\033[0m  show OpenVPN status
-          \033[0;32msudo openvpn --config server.conf\033[0m start OpenVPN
+          \033[0;32msudo systemctl status openvpn\033[0m   show OpenVPN status
+          \033[0;32msudo openvpn --config server.conf\033[0m  start OpenVPN server
 
         \033[1;33mNetwork:\033[0m
           \033[0;32msudo iptables -L -n -v\033[0m        list firewall rules
@@ -196,6 +197,7 @@ packages:
   - net-tools
   - iputils-ping
   - curl
+  - tcpdump
 write_files:
   - path: /etc/profile.d/cloud-init-status.sh
     permissions: '0755'
@@ -221,18 +223,18 @@ write_files:
 
         \033[1;33mRole:\033[0m  VPN Client VM
 
-        \033[1;33mTarget services (on the server VM):\033[0m
+        \033[1;33mTarget server (via QEMU gateway):\033[0m
           \033[0;32m10.0.2.2:51820\033[0m   WireGuard server
           \033[0;32m10.0.2.2:1194\033[0m    OpenVPN server
 
         \033[1;33mWireGuard:\033[0m
-          \033[0;32msudo wg-quick up /etc/wireguard/wg0.conf\033[0m  connect
-          \033[0;32msudo wg-quick down wg0\033[0m               disconnect
+          \033[0;32msudo wg-quick up wg0\033[0m                  connect
+          \033[0;32msudo wg-quick down wg0\033[0m                disconnect
           \033[0;32msudo wg show\033[0m                          status
 
         \033[1;33mOpenVPN:\033[0m
-          \033[0;32msudo openvpn --config client.ovpn\033[0m  connect
-          \033[0;32msudo systemctl status openvpn\033[0m       status
+          \033[0;32msudo openvpn --config client.ovpn\033[0m     connect
+          \033[0;32msudo systemctl status openvpn\033[0m          status
 
         \033[1;33mNetwork:\033[0m
           \033[0;32msudo ping 10.0.2.2\033[0m               test connectivity
