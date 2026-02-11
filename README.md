@@ -76,11 +76,14 @@ qlab stop vpn-lab-client
 
 ## Exercises
 
-1. **WireGuard setup**: Generate keys on both VMs with `wg genkey`, configure `/etc/wireguard/wg0.conf`, and bring up the tunnel
-2. **Test WireGuard**: Ping through the VPN tunnel and verify encrypted traffic with `tcpdump`
-3. **OpenVPN setup**: Configure the OpenVPN server with a static key, create a client config, and connect
-4. **Traffic analysis**: Use `tcpdump -i any -n` on both VMs to see encrypted vs. unencrypted traffic
-5. **VPN security**: Experiment with different cipher settings, key sizes, and access controls
+> **New to VPNs?** See the [Step-by-Step Guide](GUIDE.md) for complete walkthroughs with full config examples.
+
+| # | Exercise | What you'll do |
+|---|----------|----------------|
+| 1 | **WireGuard VPN** | Generate key pairs, write `wg0.conf` on both VMs, bring up a tunnel on `10.10.0.0/24` |
+| 2 | **OpenVPN (static key)** | Generate a shared secret, write `server.conf` / `client.ovpn`, establish a tunnel on `10.20.0.0/24` |
+| 3 | **Traffic analysis** | Use `tcpdump` to compare encrypted traffic on `eth0` vs. plaintext on `wg0`/`tun0` |
+| 4 | **Firewall rules** | Configure `iptables` to allow only VPN and SSH traffic, then verify |
 
 ## Managing VMs
 
