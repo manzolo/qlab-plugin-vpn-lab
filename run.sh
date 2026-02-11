@@ -104,6 +104,7 @@ packages:
   - wireguard-tools
   - openvpn
   - iptables
+  - nano
   - net-tools
   - iputils-ping
   - tcpdump
