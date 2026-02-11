@@ -195,6 +195,7 @@ packages:
   - wireguard-tools
   - openvpn
   - net-tools
+  - nano
   - iputils-ping
   - curl
   - tcpdump
