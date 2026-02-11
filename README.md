@@ -9,13 +9,17 @@ A [QLab](https://github.com/manzolo/qlab) plugin that boots two virtual machines
 ## Architecture
 
 ```
-┌─────────────────┐          ┌─────────────────┐
-│  vpn-lab-server │          │  vpn-lab-client │
-│  SSH: 2235      │◄────────►│  SSH: 2236      │
-│  WG:  51820/udp │          │                 │
-│  VPN: 1194/udp  │          │  WG/OpenVPN     │
-│                 │          │  client tools   │
-└─────────────────┘          └─────────────────┘
+    Internal LAN (192.168.100.0/24)
+┌─────────────────────────────────────┐
+│                                     │
+│  ┌─────────────────┐  ┌─────────────────┐
+│  │  vpn-lab-server │  │  vpn-lab-client │
+│  │  SSH: 2235      │  │  SSH: 2236      │
+│  │  192.168.100.1  │◄►│  192.168.100.2  │
+│  │  WG / OpenVPN   │  │  WG / OpenVPN   │
+│  └─────────────────┘  └─────────────────┘
+│                                     │
+└─────────────────────────────────────┘
 ```
 
 ## Objectives
@@ -32,7 +36,7 @@ A [QLab](https://github.com/manzolo/qlab) plugin that boots two virtual machines
 2. **Cloud-init**: Creates `user-data` for both VMs with VPN packages
 3. **ISO generation**: Packs cloud-init files into ISOs (cidata)
 4. **Overlay disks**: Creates COW disks for each VM (original stays untouched)
-5. **QEMU boot**: Starts both VMs with SSH and VPN port forwarding
+5. **QEMU boot**: Starts both VMs with SSH access and a shared internal LAN
 
 ## Credentials
 
@@ -40,14 +44,14 @@ Both VMs use the same credentials:
 - **Username:** `labuser`
 - **Password:** `labpass`
 
-## Ports
+## Network
 
-| VM              | Service   | Host Port | VM Port   |
-|-----------------|-----------|-----------|-----------|
-| vpn-lab-server  | SSH       | 2235      | 22        |
-| vpn-lab-server  | WireGuard | 51820     | 51820/udp |
-| vpn-lab-server  | OpenVPN   | 1194      | 1194/udp  |
-| vpn-lab-client  | SSH       | 2236      | 22        |
+| VM              | SSH (host) | Internal LAN IP  |
+|-----------------|------------|------------------|
+| vpn-lab-server  | port 2235  | 192.168.100.1    |
+| vpn-lab-client  | port 2236  | 192.168.100.2    |
+
+The VMs are connected by a direct internal LAN (`192.168.100.0/24`) via QEMU socket networking. VPN traffic (WireGuard, OpenVPN) flows over this LAN.
 
 ## Usage
 

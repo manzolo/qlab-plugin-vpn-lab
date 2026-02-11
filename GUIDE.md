@@ -28,29 +28,33 @@ cloud-init status --wait
 
 ## Network Topology
 
-Both VMs run inside QEMU with user-mode networking. They cannot reach each other directly — they communicate through the **host machine**, which acts as a gateway at `10.0.2.2` inside each VM.
+Each VM has **two network interfaces**:
 
-The server VM has port forwarding configured on the host:
+- **eth0** (SLIRP): for SSH access from the host (`qlab shell`)
+- **Internal LAN**: a direct virtual link between the VMs (`192.168.100.0/24`)
 
 ```
-                   Host Machine
-                  ┌────────────┐
-                  │ 10.0.2.2   │
-       ┌──────────┤            ├──────────┐
-       │  :51820 ──► :51820    │          │
-       │  :1194  ──► :1194     │          │
-       │          └────────────┘          │
-       ▼                                  ▼
-┌─────────────┐                   ┌─────────────┐
-│ vpn-server  │                   │ vpn-client  │
-│ 10.0.2.15   │                   │ 10.0.2.15   │
-│ SSH: 2235   │                   │ SSH: 2236   │
-└─────────────┘                   └─────────────┘
+        Host Machine
+       ┌────────────┐
+       │  SSH :2235  │──────► vpn-lab-server
+       │  SSH :2236  │──────► vpn-lab-client
+       └────────────┘
+
+   Internal LAN (192.168.100.0/24)
+  ┌──────────────────────────────────┐
+  │                                  │
+  │  ┌─────────────┐   ┌─────────────┐
+  │  │ vpn-server  │   │ vpn-client  │
+  │  │ 192.168.    │   │ 192.168.    │
+  │  │   100.1     │◄─►│   100.2     │
+  │  │ SSH: 2235   │   │ SSH: 2236   │
+  │  └─────────────┘   └─────────────┘
+  └──────────────────────────────────┘
 ```
 
-From the **client VM**, the server's VPN ports are reachable at `10.0.2.2:51820` (WireGuard) and `10.0.2.2:1194` (OpenVPN).
+The VMs can reach each other directly on the internal LAN — no port forwarding needed. The VPN endpoints use `192.168.100.1` (server) as the target address.
 
-The VPN tunnel creates a **separate private network** on top of this:
+The VPN tunnel creates a **separate private network** on top of the LAN:
 
 - WireGuard tunnel: `10.10.0.0/24` (server `10.10.0.1`, client `10.10.0.2`)
 - OpenVPN tunnel: `10.20.0.0/24` (server `10.20.0.1`, client `10.20.0.2`)
@@ -114,7 +118,7 @@ PrivateKey = <CLIENT_PRIVATE_KEY>
 
 [Peer]
 PublicKey = <SERVER_PUBLIC_KEY>
-Endpoint = 10.0.2.2:51820
+Endpoint = 192.168.100.1:51820
 AllowedIPs = 10.10.0.1/32
 PersistentKeepalive = 25
 ```
@@ -123,9 +127,9 @@ Replace:
 - `<CLIENT_PRIVATE_KEY>` with the content of `privatekey` on the **client**
 - `<SERVER_PUBLIC_KEY>` with the content of `publickey` on the **server**
 
-> **Why `10.0.2.2`?** That's the QEMU gateway IP — it forwards UDP port 51820 to the server VM.
+> **Why `192.168.100.1`?** That's the server's IP on the internal LAN that connects both VMs directly.
 
-> **Why `PersistentKeepalive`?** The client is behind QEMU NAT, so it needs to send periodic packets to keep the connection alive.
+> **Why `PersistentKeepalive`?** It ensures the tunnel stays active by sending periodic packets.
 
 ### 1.4 Bring up the tunnel
 
@@ -161,7 +165,7 @@ interface: wg0
   listening port: 51820
 
 peer: ...
-  endpoint: 10.0.2.2:51820
+  endpoint: 192.168.100.1:51820
   allowed ips: 10.10.0.1/32
   latest handshake: 5 seconds ago    <-- this confirms the tunnel is up
   transfer: 348 B received, 436 B sent
@@ -235,7 +239,7 @@ sudo nano /etc/openvpn/client.ovpn
 
 ```
 dev tun
-remote 10.0.2.2 1194 udp
+remote 192.168.100.1 1194 udp
 ifconfig 10.20.0.2 10.20.0.1
 secret /etc/openvpn/static.key
 persist-tun
@@ -243,7 +247,7 @@ persist-key
 verb 3
 ```
 
-> **Note:** `remote 10.0.2.2 1194` tells the client to connect to the QEMU gateway, which forwards to the server's port 1194.
+> **Note:** `remote 192.168.100.1 1194` tells the client to connect to the server's IP on the internal LAN.
 
 ### 2.5 Start the tunnel
 
@@ -369,6 +373,7 @@ The `wg0` interface hasn't been created yet. Run `sudo wg-quick up wg0` first.
 - Verify the **public keys** are correct (server's pubkey in client config, and vice versa)
 - Check that the server's `ListenPort` matches the client's `Endpoint` port
 - Make sure you started the server **before** the client
+- Verify the internal LAN works: `ping 192.168.100.1` from the client (without VPN)
 
 ### OpenVPN: "Error opening configuration file"
 
@@ -378,7 +383,8 @@ Use the full path: `sudo openvpn --config /etc/openvpn/server.conf`
 
 - Make sure the server is running first
 - Verify the static key is **identical** on both VMs
-- Check the `remote` address in the client config is `10.0.2.2`
+- Check the `remote` address in the client config is `192.168.100.1`
+- Verify the internal LAN works: `ping 192.168.100.1` from the client
 
 ### Can't ping through the tunnel
 

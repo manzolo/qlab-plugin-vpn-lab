@@ -8,27 +8,28 @@ SERVER_VM="vpn-lab-server"
 CLIENT_VM="vpn-lab-client"
 SERVER_SSH_PORT=2235
 CLIENT_SSH_PORT=2236
-VPN_PORT=1194
-WG_PORT=51820
+
+# Internal LAN — direct VM-to-VM link via QEMU socket multicast
+INTERNAL_MCAST="230.0.0.1:10000"
+SERVER_INTERNAL_IP="192.168.100.1"
+CLIENT_INTERNAL_IP="192.168.100.2"
+SERVER_LAN_MAC="52:54:00:00:01:01"
+CLIENT_LAN_MAC="52:54:00:00:01:02"
 
 echo "============================================="
 echo "  vpn-lab: VPN Configuration Lab"
 echo "============================================="
 echo ""
-echo "  This lab creates two VMs:"
+echo "  This lab creates two VMs connected by an"
+echo "  internal LAN (192.168.100.0/24):"
 echo ""
 echo "    1. $SERVER_VM  (SSH port $SERVER_SSH_PORT)"
-echo "       Runs VPN server (WireGuard or OpenVPN)"
-echo "       Practice VPN configuration and security"
+echo "       Internal IP: $SERVER_INTERNAL_IP"
+echo "       Practice VPN server configuration"
 echo ""
 echo "    2. $CLIENT_VM  (SSH port $CLIENT_SSH_PORT)"
-echo "       Equipped with VPN client tools"
+echo "       Internal IP: $CLIENT_INTERNAL_IP"
 echo "       Connect to the VPN server and test connectivity"
-echo ""
-echo "  VPN Configuration:"
-echo "    - VPN Server: $SERVER_VM"
-echo "    - VPN Client: $CLIENT_VM"
-echo "    - VPN Port: $VPN_PORT (OpenVPN) or $WG_PORT (WireGuard)"
 echo ""
 
 # Source QLab core libraries
@@ -125,6 +126,16 @@ write_files:
           printf '\033[0m\n'
         fi
       fi
+  - path: /etc/netplan/60-internal.yaml
+    content: |
+      network:
+        version: 2
+        ethernets:
+          vpnlan:
+            match:
+              macaddress: "52:54:00:00:01:01"
+            addresses:
+              - 192.168.100.1/24
   - path: /etc/motd.raw
     content: |
       \033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
@@ -132,6 +143,7 @@ write_files:
       \033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
 
         \033[1;33mRole:\033[0m  VPN Server VM
+        \033[1;33mInternal IP:\033[0m  \033[1;36m192.168.100.1\033[0m  (client is 192.168.100.2)
 
         \033[1;33mInstalled tools:\033[0m
           \033[0;32mWireGuard\033[0m      (port 51820/udp)
@@ -144,9 +156,10 @@ write_files:
 
         \033[1;33mOpenVPN Commands:\033[0m
           \033[0;32msudo systemctl status openvpn\033[0m   show OpenVPN status
-          \033[0;32msudo openvpn --config server.conf\033[0m  start OpenVPN server
+          \033[0;32msudo openvpn --config /etc/openvpn/server.conf\033[0m
 
         \033[1;33mNetwork:\033[0m
+          \033[0;32msudo ping 192.168.100.2\033[0m        ping the client VM
           \033[0;32msudo iptables -L -n -v\033[0m        list firewall rules
           \033[0;32msudo tcpdump -i any -n\033[0m         capture all traffic
 
@@ -157,6 +170,7 @@ write_files:
 
 
 runcmd:
+  - netplan apply
   - chmod -x /etc/update-motd.d/*
   - sed -i 's/^#\?PrintMotd.*/PrintMotd yes/' /etc/ssh/sshd_config
   - sed -i 's/^session.*pam_motd.*/# &/' /etc/pam.d/sshd
@@ -217,6 +231,16 @@ write_files:
           printf '\033[0m\n'
         fi
       fi
+  - path: /etc/netplan/60-internal.yaml
+    content: |
+      network:
+        version: 2
+        ethernets:
+          vpnlan:
+            match:
+              macaddress: "52:54:00:00:01:02"
+            addresses:
+              - 192.168.100.2/24
   - path: /etc/motd.raw
     content: |
       \033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
@@ -224,10 +248,11 @@ write_files:
       \033[1;36m━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\033[0m
 
         \033[1;33mRole:\033[0m  VPN Client VM
+        \033[1;33mInternal IP:\033[0m  \033[1;36m192.168.100.2\033[0m  (server is 192.168.100.1)
 
-        \033[1;33mTarget server (via QEMU gateway):\033[0m
-          \033[0;32m10.0.2.2:51820\033[0m   WireGuard server
-          \033[0;32m10.0.2.2:1194\033[0m    OpenVPN server
+        \033[1;33mVPN Server:\033[0m
+          \033[0;32m192.168.100.1:51820\033[0m   WireGuard
+          \033[0;32m192.168.100.1:1194\033[0m    OpenVPN
 
         \033[1;33mWireGuard:\033[0m
           \033[0;32msudo wg-quick up wg0\033[0m                  connect
@@ -235,11 +260,11 @@ write_files:
           \033[0;32msudo wg show\033[0m                          status
 
         \033[1;33mOpenVPN:\033[0m
-          \033[0;32msudo openvpn --config client.ovpn\033[0m     connect
+          \033[0;32msudo openvpn --config /etc/openvpn/client.ovpn\033[0m
           \033[0;32msudo systemctl status openvpn\033[0m          status
 
         \033[1;33mNetwork:\033[0m
-          \033[0;32msudo ping 10.0.2.2\033[0m               test connectivity
+          \033[0;32msudo ping 192.168.100.1\033[0m           test connectivity
           \033[0;32msudo tcpdump -i any -n\033[0m            capture traffic
 
         \033[1;33mCredentials:\033[0m  \033[1;36mlabuser\033[0m / \033[1;36mlabpass\033[0m
@@ -249,6 +274,7 @@ write_files:
 
 
 runcmd:
+  - netplan apply
   - chmod -x /etc/update-motd.d/*
   - sed -i 's/^#\?PrintMotd.*/PrintMotd yes/' /etc/ssh/sshd_config
   - sed -i 's/^session.*pam_motd.*/# &/' /etc/pam.d/sshd
@@ -311,18 +337,20 @@ echo ""
 # =============================================
 # Step 5: Start both VMs
 # =============================================
-info "Step 5: Starting VMs"
+info "Step 5: Starting VMs (internal LAN: 192.168.100.0/24)"
 echo ""
 
 info "Starting $SERVER_VM (SSH port $SERVER_SSH_PORT)..."
 start_vm "$OVERLAY_SERVER" "$CIDATA_SERVER" "$MEMORY" "$SERVER_VM" "$SERVER_SSH_PORT" \
-    "hostfwd=udp::${WG_PORT}-:${WG_PORT}" \
-    "hostfwd=udp::${VPN_PORT}-:${VPN_PORT}"
+    "-netdev" "socket,id=vlan1,mcast=${INTERNAL_MCAST}" \
+    "-device" "virtio-net-pci,netdev=vlan1,mac=${SERVER_LAN_MAC}"
 
 echo ""
 
 info "Starting $CLIENT_VM (SSH port $CLIENT_SSH_PORT)..."
-start_vm "$OVERLAY_CLIENT" "$CIDATA_CLIENT" "$MEMORY" "$CLIENT_VM" "$CLIENT_SSH_PORT"
+start_vm "$OVERLAY_CLIENT" "$CIDATA_CLIENT" "$MEMORY" "$CLIENT_VM" "$CLIENT_SSH_PORT" \
+    "-netdev" "socket,id=vlan1,mcast=${INTERNAL_MCAST}" \
+    "-device" "virtio-net-pci,netdev=vlan1,mac=${CLIENT_LAN_MAC}"
 
 echo ""
 echo "============================================="
@@ -330,18 +358,17 @@ echo "  vpn-lab: Both VMs are booting"
 echo "============================================="
 echo ""
 echo "  VPN Server VM:"
-echo "    SSH:   qlab shell $SERVER_VM"
-echo "    Log:   qlab log $SERVER_VM"
-echo "    Port:  $SERVER_SSH_PORT"
+echo "    SSH:          qlab shell $SERVER_VM"
+echo "    Log:          qlab log $SERVER_VM"
+echo "    Internal IP:  $SERVER_INTERNAL_IP"
 echo ""
 echo "  VPN Client VM:"
-echo "    SSH:   qlab shell $CLIENT_VM"
-echo "    Log:   qlab log $CLIENT_VM"
-echo "    Port:  $CLIENT_SSH_PORT"
+echo "    SSH:          qlab shell $CLIENT_VM"
+echo "    Log:          qlab log $CLIENT_VM"
+echo "    Internal IP:  $CLIENT_INTERNAL_IP"
 echo ""
-echo "  Credentials (both VMs):"
-echo "    Username: labuser"
-echo "    Password: labpass"
+echo "  Internal LAN:  192.168.100.0/24"
+echo "  Credentials:   labuser / labpass"
 echo ""
 echo "  Wait ~90s for boot + package installation."
 echo ""
