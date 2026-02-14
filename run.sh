@@ -6,8 +6,8 @@ set -euo pipefail
 PLUGIN_NAME="vpn-lab"
 SERVER_VM="vpn-lab-server"
 CLIENT_VM="vpn-lab-client"
-SERVER_SSH_PORT=2235
-CLIENT_SSH_PORT=2236
+SERVER_SSH_PORT=2240
+CLIENT_SSH_PORT=2241
 
 # Internal LAN — direct VM-to-VM link via QEMU socket multicast
 INTERNAL_MCAST="230.0.0.1:10000"

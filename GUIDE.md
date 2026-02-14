@@ -36,8 +36,8 @@ Each VM has **two network interfaces**:
 ```
         Host Machine
        ┌────────────┐
-       │  SSH :2235  │──────► vpn-lab-server
-       │  SSH :2236  │──────► vpn-lab-client
+       │  SSH :2240  │──────► vpn-lab-server
+       │  SSH :2241  │──────► vpn-lab-client
        └────────────┘
 
    Internal LAN (192.168.100.0/24)
@@ -47,7 +47,7 @@ Each VM has **two network interfaces**:
   │  │ vpn-server  │   │ vpn-client  │
   │  │ 192.168.    │   │ 192.168.    │
   │  │   100.1     │◄─►│   100.2     │
-  │  │ SSH: 2235   │   │ SSH: 2236   │
+  │  │ SSH: 2240   │   │ SSH: 2241   │
   │  └─────────────┘   └─────────────┘
   └──────────────────────────────────┘
 ```

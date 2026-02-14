@@ -14,7 +14,7 @@ A [QLab](https://github.com/manzolo/qlab) plugin that boots two virtual machines
 │                                     │
 │  ┌─────────────────┐  ┌─────────────────┐
 │  │  vpn-lab-server │  │  vpn-lab-client │
-│  │  SSH: 2235      │  │  SSH: 2236      │
+│  │  SSH: 2240      │  │  SSH: 2241      │
 │  │  192.168.100.1  │◄►│  192.168.100.2  │
 │  │  WG / OpenVPN   │  │  WG / OpenVPN   │
 │  └─────────────────┘  └─────────────────┘
@@ -48,8 +48,8 @@ Both VMs use the same credentials:
 
 | VM              | SSH (host) | Internal LAN IP  |
 |-----------------|------------|------------------|
-| vpn-lab-server  | port 2235  | 192.168.100.1    |
-| vpn-lab-client  | port 2236  | 192.168.100.2    |
+| vpn-lab-server  | port 2240  | 192.168.100.1    |
+| vpn-lab-client  | port 2241  | 192.168.100.2    |
 
 The VMs are connected by a direct internal LAN (`192.168.100.0/24`) via QEMU socket networking. VPN traffic (WireGuard, OpenVPN) flows over this LAN.
 
