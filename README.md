@@ -82,7 +82,7 @@ qlab stop vpn-lab-client
 
 ## Exercises
 
-> **New to VPNs?** See the [Step-by-Step Guide](GUIDE.md) for complete walkthroughs with full config examples.
+> **New to VPNs?** See the [Step-by-Step Guide](guide.md) for complete walkthroughs with full config examples.
 
 | # | Exercise | What you'll do |
 |---|----------|----------------|
@@ -90,6 +90,17 @@ qlab stop vpn-lab-client
 | 2 | **OpenVPN (static key)** | Generate a shared secret, write `server.conf` / `client.ovpn`, establish a tunnel on `10.20.0.0/24` |
 | 3 | **Traffic analysis** | Use `tcpdump` to compare encrypted traffic on `eth0` vs. plaintext on `wg0`/`tun0` |
 | 4 | **Firewall rules** | Configure `iptables` to allow only VPN and SSH traffic, then verify |
+
+## Automated Tests
+
+An automated test suite validates the exercises against running VMs:
+
+```bash
+# Start the lab first
+qlab run vpn-lab
+# Wait ~90s for cloud-init, then run all tests
+qlab test vpn-lab
+```
 
 ## Managing VMs
 
