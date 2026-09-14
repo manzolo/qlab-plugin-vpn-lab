@@ -1,0 +1,24 @@
+server public key : yx26lNwuiYiU6vrKlY5WEKyYocqityyJMIOw38DPFWk=
+client public key : LZa8WmUaaTkASdU4vrTOTipmUd/1JhpUP+Z5AI5f9kg=
+
+Only the public halves are exchanged. Neither private key leaves its machine.
+
+$ the server config that produced (private key redacted)
+[Interface]
+Address = 10.10.0.1/24
+ListenPort = 51820
+PrivateKey = <redacted>
+
+[Peer]
+PublicKey = LZa8WmUaaTkASdU4vrTOTipmUd/1JhpUP+Z5AI5f9kg=
+AllowedIPs = 10.10.0.2/32
+
+$ wg-quick up wg0, on both
+  server: [#] ip link add wg0 type wireguard
+  server: [#] wg setconf wg0 /dev/fd/63
+  server: [#] ip -4 address add 10.10.0.1/24 dev wg0
+  server: [#] ip link set mtu 1420 up dev wg0
+  client: [#] ip link add wg0 type wireguard
+  client: [#] wg setconf wg0 /dev/fd/63
+  client: [#] ip -4 address add 10.10.0.2/24 dev wg0
+  client: [#] ip link set mtu 1420 up dev wg0

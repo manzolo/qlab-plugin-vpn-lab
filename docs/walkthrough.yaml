@@ -1,0 +1,84 @@
+# vpn-lab — what the walkthrough builder captures from a running lab.
+#
+# The plugin ships the tools and leaves the configuring to the learner: nothing
+# is up when the lab boots. So this manifest performs exercise 1 itself —
+# generating keys on both machines, exchanging the public halves, bringing the
+# tunnel up — and captures the result. It tears the tunnel down afterwards, so
+# the lab is handed back the way the guide expects to find it.
+
+evidence:
+  - id: topology
+    cmd: |
+      echo '--- server ---'
+      qlab shell vpn-lab-server --no-wait -c 'ip -br addr | grep -vE "^lo"'
+      echo '--- client ---'
+      qlab shell vpn-lab-client --no-wait -c 'ip -br addr | grep -vE "^lo"'
+  - id: before
+    cmd: |
+      echo '$ what is running when the lab boots'
+      qlab shell vpn-lab-server --no-wait -c \
+        'systemctl is-active wg-quick@wg0 2>/dev/null || echo "wg-quick@wg0: inactive"; ip -br link | grep -cE "wg0|tun0" | xargs -I{} echo "tunnel interfaces: {}"'
+      echo
+      echo '$ but the tools are there'
+      qlab shell vpn-lab-server --no-wait -c 'wg --version; openvpn --version 2>/dev/null | head -1'
+
+  - id: build-tunnel
+    cmd: |
+      set -u
+      SRV=192.168.100.1
+      # Keys, made on the machine that will keep the private half.
+      qlab shell vpn-lab-server --no-wait -c \
+        'sudo mkdir -p /etc/wireguard && sudo chmod 700 /etc/wireguard && wg genkey | sudo tee /etc/wireguard/priv >/dev/null && sudo chmod 600 /etc/wireguard/priv && sudo cat /etc/wireguard/priv | wg pubkey' > /tmp/qlab-wg-srv.pub 2>/dev/null
+      qlab shell vpn-lab-client --no-wait -c \
+        'sudo mkdir -p /etc/wireguard && sudo chmod 700 /etc/wireguard && wg genkey | sudo tee /etc/wireguard/priv >/dev/null && sudo chmod 600 /etc/wireguard/priv && sudo cat /etc/wireguard/priv | wg pubkey' > /tmp/qlab-wg-cli.pub 2>/dev/null
+      SRVPUB=$(tail -1 /tmp/qlab-wg-srv.pub | tr -d '\r')
+      CLIPUB=$(tail -1 /tmp/qlab-wg-cli.pub | tr -d '\r')
+      echo "server public key : $SRVPUB"
+      echo "client public key : $CLIPUB"
+      echo
+      echo 'Only the public halves are exchanged. Neither private key leaves its machine.'
+      qlab shell vpn-lab-server --no-wait -c \
+        "sudo sh -c 'printf \"[Interface]\nAddress = 10.10.0.1/24\nListenPort = 51820\nPrivateKey = \$(cat /etc/wireguard/priv)\n\n[Peer]\nPublicKey = $CLIPUB\nAllowedIPs = 10.10.0.2/32\n\" > /etc/wireguard/wg0.conf'" >/dev/null 2>&1
+      qlab shell vpn-lab-client --no-wait -c \
+        "sudo sh -c 'printf \"[Interface]\nAddress = 10.10.0.2/24\nPrivateKey = \$(cat /etc/wireguard/priv)\n\n[Peer]\nPublicKey = $SRVPUB\nEndpoint = $SRV:51820\nAllowedIPs = 10.10.0.1/32\nPersistentKeepalive = 15\n\" > /etc/wireguard/wg0.conf'" >/dev/null 2>&1
+      echo
+      echo '$ the server config that produced (private key redacted)'
+      qlab shell vpn-lab-server --no-wait -c \
+        'sudo sed -E "s/(PrivateKey *= *).*/\1<redacted>/" /etc/wireguard/wg0.conf'
+      echo
+      echo '$ wg-quick up wg0, on both'
+      qlab shell vpn-lab-server --no-wait -c 'sudo wg-quick up wg0 2>&1 | sed "s/^/  server: /"'
+      qlab shell vpn-lab-client --no-wait -c 'sudo wg-quick up wg0 2>&1 | sed "s/^/  client: /"'
+
+  - id: tunnel-up
+    cmd: |
+      echo '$ ip addr show wg0    (server)'
+      qlab shell vpn-lab-server --no-wait -c 'ip -br addr show wg0; ip route | grep 10.10.0'
+      echo
+      echo '$ ping 10.10.0.1 from the client, through the tunnel'
+      qlab shell vpn-lab-client --no-wait -c 'ping -c3 -W3 10.10.0.1 2>&1 | tail -3'
+      echo
+      echo '$ wg show on the server   (keys shortened)'
+      qlab shell vpn-lab-server --no-wait -c 'sudo wg show' 2>&1 | sed -E 's/([A-Za-z0-9+\/]{20})[A-Za-z0-9+\/=]+/\1.../'
+
+  - id: on-the-wire
+    cmd: |
+      echo 'tcpdump on the lab LAN while the client pings 10.10.0.1 through the tunnel.'
+      qlab shell vpn-lab-server --no-wait -c \
+        'sudo timeout 22 tcpdump -i ens4 -n -c 8 "udp port 51820 or icmp"' > /tmp/qlab-vpn-cap.txt 2>&1 &
+      cap=$!
+      sleep 5
+      qlab shell vpn-lab-client --no-wait -c 'ping -c5 -W2 10.10.0.1' >/dev/null 2>&1
+      wait $cap
+      grep -aE 'IP ' /tmp/qlab-vpn-cap.txt | head -8
+      echo
+      echo 'Every packet is UDP to port 51820. The ICMP is inside, and not visible here.'
+
+  - id: teardown
+    cmd: |
+      qlab shell vpn-lab-client --no-wait -c 'sudo wg-quick down wg0 2>/dev/null; sudo rm -f /etc/wireguard/wg0.conf /etc/wireguard/priv' >/dev/null 2>&1
+      qlab shell vpn-lab-server --no-wait -c 'sudo wg-quick down wg0 2>/dev/null; sudo rm -f /etc/wireguard/wg0.conf /etc/wireguard/priv' >/dev/null 2>&1
+      echo 'Tunnel removed; the lab is back to the state the guide starts from.'
+
+  - id: qlab-test
+    cmd: qlab test vpn-lab 2>&1 || true

@@ -1,0 +1,5 @@
+inactive
+openvpn@server: inactive
+
+
+(tun0 not up)

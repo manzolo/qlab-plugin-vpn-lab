@@ -1,0 +1,6 @@
+$ from the client, over the tunnel
+--- 10.8.0.1 ping statistics ---
+3 packets transmitted, 0 received, 100% packet loss, time 2055ms
+
+
+$ and what the server now says about the peer

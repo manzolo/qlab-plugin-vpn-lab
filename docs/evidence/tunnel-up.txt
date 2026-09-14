@@ -1,0 +1,20 @@
+$ ip addr show wg0    (server)
+wg0              UNKNOWN        10.10.0.1/24 
+10.10.0.0/24 dev wg0 proto kernel scope link src 10.10.0.1 
+
+$ ping 10.10.0.1 from the client, through the tunnel
+--- 10.10.0.1 ping statistics ---
+3 packets transmitted, 3 received, 0% packet loss, time 2025ms
+rtt min/avg/max/mdev = 0.311/0.467/0.617/0.125 ms
+
+$ wg show on the server   (keys shortened)
+interface: wg0
+  public key: yx26lNwuiYiU6vrKlY5W...
+  private key: (hidden)
+  listening port: 51820
+
+peer: LZa8WmUaaTkASdU4vrTO...
+  endpoint: 192.168.100.2:36396
+  allowed ips: 10.10.0.2/32
+  latest handshake: 3 seconds ago
+  transfer: 564 B received, 476 B sent

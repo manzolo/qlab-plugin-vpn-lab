@@ -1,0 +1,77 @@
+[INFO] Running tests for plugin 'vpn-lab'...
+
+
+=========================================
+  vpn-lab — Automated Test Suite
+=========================================
+
+  [INFO] Server port: 2225
+  [INFO] Client port: 2226
+  [PASS] Server VM reachable
+  [PASS] Client VM reachable
+  [PASS] Server cloud-init done
+  [PASS] Client cloud-init done
+
+Exercise 1 — VPN Anatomy
+
+  [PASS] wg installed on server
+  [PASS] wg-quick installed on server
+  [PASS] wg installed on client
+  [PASS] wg-quick installed on client
+  [PASS] openvpn installed on server
+  [PASS] openvpn installed on client
+  [PASS] Server can ping client
+  [PASS] Client can ping server
+  [PASS] tcpdump on server
+
+  Exercise 1: All 9 checks passed
+
+Exercise 2 — WireGuard Key Generation
+
+  [PASS] Server private key generated
+  [PASS] Server public key generated
+  [PASS] Client private key generated
+  [PASS] Client public key generated
+  [PASS] Server key has correct length
+
+  Exercise 2: All 5 checks passed
+
+Exercise 3 — WireGuard Tunnel
+
+  [PASS] WireGuard interface up on server
+  [PASS] WireGuard interface up on client
+  [PASS] Client can ping server through tunnel
+
+  Exercise 3: All 3 checks passed
+
+Exercise 4 — OpenVPN Installation
+
+  [PASS] openvpn on server
+  [PASS] OpenVPN version available
+  [PASS] openvpn on client
+  [PASS] iptables on server
+  [PASS] IP forwarding enabled
+
+  Exercise 4: All 5 checks passed
+
+Exercise 5 — Network Verification
+
+  [PASS] Server has 192.168.100.1
+  [PASS] Client has 192.168.100.2
+  [PASS] Server -> Client ping
+  [PASS] Client -> Server ping
+  [PASS] tcpdump on server
+  [PASS] ip command available
+
+  Exercise 5: All 6 checks passed
+
+=========================================
+  Final Report
+=========================================
+
+  Exercises run:     5
+  Exercises passed:  5
+  Exercises failed:  0
+  Exercises skipped: 0
+
+  All exercises passed!

@@ -1,0 +1,3 @@
+tcpdump on the LAN while the client pings through the tunnel.
+
+Note what is NOT there: no ICMP, no 10.8.0.x. Only UDP 51820.

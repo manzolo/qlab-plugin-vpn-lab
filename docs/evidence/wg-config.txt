@@ -1,0 +1,4 @@
+$ /etc/wireguard/wg0.conf   (private keys redacted)
+
+sed: can't read /etc/wireguard/wg0.conf: No such file or directory
+ls: cannot open directory '/etc/wireguard/': Permission denied
