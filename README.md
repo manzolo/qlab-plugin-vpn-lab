@@ -1,145 +1,46 @@
-# vpn-lab — VPN Configuration Lab
+# vpn-lab — WireGuard & OpenVPN Lab
 
 [![QLab Plugin](https://img.shields.io/badge/QLab-Plugin-blue)](https://github.com/manzolo/qlab)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Linux-lightgrey)](https://github.com/manzolo/qlab)
+[![Walkthrough](https://img.shields.io/badge/walkthrough-EN%20%26%20IT-informational)](docs/walkthrough-en.pdf)
 
-A [QLab](https://github.com/manzolo/qlab) plugin that boots two virtual machines for practicing VPN configuration with both WireGuard and OpenVPN.
+A two-VM [QLab](https://github.com/manzolo/qlab) lab on a private LAN — a VPN server and a
+client — for building a tunnel two ways (WireGuard and OpenVPN), then proving it works by
+watching the traffic go from plaintext to ciphertext on the wire.
 
-## Architecture
+## Quick start
 
-```
-    Internal LAN (192.168.100.0/24)
-┌─────────────────────────────────────┐
-│                                     │
-│  ┌─────────────────┐  ┌─────────────────┐
-│  │  vpn-lab-server │  │  vpn-lab-client │
-│  │  SSH: dynamic   │  │  SSH: dynamic   │
-│  │  192.168.100.1  │◄►│  192.168.100.2  │
-│  │  WG / OpenVPN   │  │  WG / OpenVPN   │
-│  └─────────────────┘  └─────────────────┘
-│                                     │
-└─────────────────────────────────────┘
+```bash
+qlab install vpn-lab
+qlab run vpn-lab             # boots 2 VMs (~90s)
+qlab shell vpn-lab-server    # labuser / labpass
+qlab shell vpn-lab-client    # labuser / labpass
+qlab test vpn-lab            # run the automated checks
+qlab stop vpn-lab
 ```
 
-## Objectives
+## What's inside
 
-- Configure a WireGuard VPN tunnel between server and client
-- Configure an OpenVPN server and connect a client
-- Test VPN connectivity and traffic encryption
-- Monitor VPN traffic with tcpdump
-- Understand VPN security best practices
-
-## How It Works
-
-1. **Cloud image**: Downloads a minimal Ubuntu 22.04 cloud image (~250MB)
-2. **Cloud-init**: Creates `user-data` for both VMs with VPN packages
-3. **ISO generation**: Packs cloud-init files into ISOs (cidata)
-4. **Overlay disks**: Creates COW disks for each VM (original stays untouched)
-5. **QEMU boot**: Starts both VMs with SSH access and a shared internal LAN
-
-## Credentials
-
-Both VMs use the same credentials:
-- **Username:** `labuser`
-- **Password:** `labpass`
+| # | Exercise | What you do |
+|---|----------|-------------|
+| 1 | WireGuard | key pairs, `wg0.conf` on both ends, a tunnel on `10.10.0.0/24` |
+| 2 | OpenVPN (static key) | a shared secret, `server.conf` / `client.ovpn`, a tunnel on `10.20.0.0/24` |
+| 3 | Traffic analysis | tcpdump: ciphertext on `eth0` vs plaintext inside `wg0` / `tun0` |
+| 4 | Firewall rules | iptables to allow only VPN and SSH, then verify |
 
 ## Network
 
-| VM              | SSH (host) | Internal LAN IP  |
-|-----------------|------------|------------------|
-| vpn-lab-server  | dynamic    | 192.168.100.1    |
-| vpn-lab-client  | dynamic    | 192.168.100.2    |
+Private LAN `192.168.100.0/24`, isolated between the two VMs.
 
-> All host ports are dynamically allocated. Use `qlab ports` to see the actual mappings.
+| VM | Address | Role |
+|----|---------|------|
+| `vpn-lab-server` | `192.168.100.1` | WireGuard / OpenVPN endpoint |
+| `vpn-lab-client` | `192.168.100.2` | the other end |
 
-The VMs are connected by a direct internal LAN (`192.168.100.0/24`) via QEMU socket networking. VPN traffic (WireGuard, OpenVPN) flows over this LAN.
+SSH: `labuser` / `labpass`, dynamically forwarded — see `qlab ports`.
 
-## Walkthrough
+## Learn more
 
-`docs/` holds an illustrated account of a real run — every block of output in it
-was captured while the lab was running, not written by hand.
-
-| English | Italiano |
-|---|---|
-| [`docs/walkthrough-en.pdf`](docs/walkthrough-en.pdf) | [`docs/walkthrough-it.pdf`](docs/walkthrough-it.pdf) |
-
-```bash
-# from the qlab checkout
-python3 tools/walkthrough/build.py ../qlab-plugin-vpn-lab        # English
-python3 tools/walkthrough/build.py ../qlab-plugin-vpn-lab -it    # Italian
-python3 tools/walkthrough/build.py ../qlab-plugin-vpn-lab --live # re-capture first
-```
-
-## Usage
-
-```bash
-# Install the plugin
-qlab install vpn-lab
-
-# Run the lab (starts both VMs)
-qlab run vpn-lab
-
-# Wait ~90s for boot and package installation, then:
-
-# Connect to the server VM
-qlab shell vpn-lab-server
-
-# Connect to the client VM
-qlab shell vpn-lab-client
-
-# Stop both VMs
-qlab stop vpn-lab
-
-# Stop a single VM
-qlab stop vpn-lab-server
-qlab stop vpn-lab-client
-```
-
-## Exercises
-
-> **New to VPNs?** See the [Step-by-Step Guide](guide.md) for complete walkthroughs with full config examples.
-
-| # | Exercise | What you'll do |
-|---|----------|----------------|
-| 1 | **WireGuard VPN** | Generate key pairs, write `wg0.conf` on both VMs, bring up a tunnel on `10.10.0.0/24` |
-| 2 | **OpenVPN (static key)** | Generate a shared secret, write `server.conf` / `client.ovpn`, establish a tunnel on `10.20.0.0/24` |
-| 3 | **Traffic analysis** | Use `tcpdump` to compare encrypted traffic on `eth0` vs. plaintext on `wg0`/`tun0` |
-| 4 | **Firewall rules** | Configure `iptables` to allow only VPN and SSH traffic, then verify |
-
-## Automated Tests
-
-An automated test suite validates the exercises against running VMs:
-
-```bash
-# Start the lab first
-qlab run vpn-lab
-# Wait ~90s for cloud-init, then run all tests
-qlab test vpn-lab
-```
-
-## Managing VMs
-
-```bash
-# View boot logs
-qlab log vpn-lab-server
-qlab log vpn-lab-client
-
-# Check running VMs
-qlab status
-```
-
-## Resetting
-
-To start fresh, stop and re-run:
-
-```bash
-qlab stop vpn-lab
-qlab run vpn-lab
-```
-
-Or reset the entire workspace:
-
-```bash
-qlab reset
-```
+- 📖 **[Step-by-step guide](guide.md)** — every exercise with full configs
+- 📄 **Illustrated walkthrough** — a real run, captured live: **[English](docs/walkthrough-en.pdf)** · **[Italiano](docs/walkthrough-it.pdf)**
+- 🧩 **[QLab](https://github.com/manzolo/qlab)** — the plugin runner: how install, overlays and cloud-init work
